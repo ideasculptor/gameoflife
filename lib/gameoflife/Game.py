@@ -30,13 +30,19 @@ class Game:
     if self.__board:
       self.__board.render()
 
-
+  @preconditions(
+    lambda generations: isinstance(generations, int),
+    lambda generations: generations > 0 and generations <= 1000,
+    lambda framerate: isinstance(framerate, int),
+    lambda framerate: framerate > 0 and framerate <= 100,
+  )
   def run(self, generations, framerate):
     """Run the game through specified generations at specified framerate
     
     Simulation stops if the population stabilizes. Framerate doesn't take
     computation time of each tick or render time into account. Console 
     doesn't refresh very quickly, anyway."""
+
     for i in range(0, generations):
       time.sleep(1/framerate)
       self.tick()

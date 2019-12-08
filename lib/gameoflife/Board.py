@@ -2,8 +2,6 @@ import sys
 from collections import defaultdict
 from preconditions import preconditions
 
-from .Cell import Cell
-
 class Board:
   """Represents the current state of the GoL universe."""
 
@@ -20,9 +18,6 @@ class Board:
     # can change state during a tick
     self.__live_cells = set()
 
-
-    # Build 2 dimensional array of cells via list comprehension
-    self.__cells = [ [ Cell() for y in range(height) ] for x in range(width) ]
 
     if initial_state != None:
       # populate the board with any initial state provided
@@ -47,7 +42,8 @@ class Board:
     lambda self, y: y >= 0 and y < self.height,
   )
   def get_cell_state(self, x, y):
-    return self.__cells[x][y].alive
+    if (x, y) in self.__live_cells:
+      return True
 
 
   @preconditions(
@@ -62,19 +58,27 @@ class Board:
     of whether state changed or not.
     """
     if state:
-      self.__live_cells.add((x, y))
-      return self.__cells[x][y].generate()
+      if (x, y) not in self.__live_cells:
+        self.__live_cells.add((x, y))
+        return True
+      else:
+        return False
     else:
-      # We don't actually need this line, since we use a fresh buffer for each
-      # generation, so there's no need to clean up.  In truth, the board
-      # should be immutable after creation in a particular state, in order
-      # to avoid this issue entirely, but I'm time limited.
-      self.__live_cells.discard((x, y))
-      return self.__cells[x][y].die()
+      if (x, y) in self.__live_cells:
+        # We don't actually need this line, since we use a fresh buffer for each
+        # generation, so there's no need to clean up.  In truth, the board
+        # should be immutable after creation in a particular state, in order
+        # to avoid this issue entirely, but I'm time limited.
+        self.__live_cells.remove((x, y))
+        return True
+      else:
+        return False
 
   
-  def tick(self, next):
+  def tick(self):
     """Compute the state of the next board, which is passed in as a buffer"""
+
+    next = Board(self.width, self.height)
 
     # If nothing changes, indicate that, since the game can stop
     is_mod = False
@@ -88,7 +92,8 @@ class Board:
     # count while processing the current live set
     for (x, y) in self.__live_cells:
       next_state = self.tick_cell(x, y, dead_neighbours)
-      next.set_cell_state(x, y, next_state)
+      if next_state:
+        next.set_cell_state(x, y, next_state)
 
       if next_state != self.get_cell_state(x, y):
         is_mod = True
@@ -114,7 +119,9 @@ class Board:
     live_neighbours = 0
 
     # Could use a global lookup to prevent recomputing on every pass, but
-    # that is complicated by board wrap semantics
+    # that is complicated by board wrap semantics.  Could also calculate
+    # inline with update, but it is still a constant time operation, just
+    # a slightly faster one
     neighbours = self.compute_neighbours(x,y)
 
     if self.get_cell_state(x, y):
@@ -173,8 +180,13 @@ class Board:
 
     # clears the console and resets cursor to upper left
     sys.stdout.write("\033[2J")
-    for y in range(0, self.height):
-      for x in range(0, self.width):
-        self.__cells[x][y].render()
+    for x in range(0, self.width):
+      for y in range(0, self.height):
+        if (x,y) not in self.__live_cells:
+          # render dead cells with inverse colors and print a space
+          # cells are 2 spaces to make board wider relative to height
+          sys.stdout.write("\033[7m  \033[0m")
+        else:
+          print('  ', end = "")
       print()
 

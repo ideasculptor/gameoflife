@@ -30,19 +30,13 @@ class Game:
     avoid reallocating, but I have to leave something to talk about in the
     interview.
     """
-    if not self.complete:
-      next_board = Board(self.__board.width, self.__board.height)
-      self.__board = self.__board.tick(next_board)
-
-
-  @property
-  def complete(self):
-    return self.__board == None
+    if self.__board:
+      self.__board = self.__board.tick()
 
 
   def render(self):
     """Render the board's state graphically"""
-    if not self.complete:
+    if self.__board:
       self.__board.render()
 
 
@@ -50,7 +44,7 @@ class Game:
     for i in range(0, generations):
       time.sleep(1/framerate)
       self.tick()
-      self.render()
-      if self.complete:
+      if not self.__board:
         break
+      self.render()
 

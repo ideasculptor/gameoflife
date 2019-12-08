@@ -9,5 +9,7 @@ setup(
     'Click',
     'preconditions',
   ],
-  entry_points = {'console_scripts': ['gameoflife=gameoflife.scripts.gameoflife:cli']}
+  entry_points = {'console_scripts': [
+    'gameoflife=gameoflife.scripts.gameoflife:cli',
+  ]}
 )

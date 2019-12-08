@@ -10,17 +10,21 @@ class Board:
     lambda height: isinstance(height, int) and height > 0,
   )
   def __init__(self, width, height, initial_state = None):
+    """Initialize the board. 
+
+    initial_state should be a 2 dimensional array of bool."""
+
     self.__width = width
     self.__height = height
 
-    # Keep a separate list of live_cells, to limit iteration over the full
-    # board when the universe is large. Only live cells and their neighbours
-    # can change state during a tick
+    # Keep a list of live_cells, to prevent iteration over a full board
+    # Only live cells and their immediate neighbours can change state
+    # during a tick so we don't need the full board in memory
     self.__live_cells = set()
 
 
+    # populate the board with any initial state provided
     if initial_state != None:
-      # populate the board with any initial state provided
       for x in range(self.width):
         for y in range(self.height):
           if initial_state[x][y]:
@@ -54,15 +58,10 @@ class Board:
   def set_cell_state(self, x, y, state):
     """Update the state of a cell.
 
-    Adds the cell's coords to __live_cells, and returns bool indicator
-    of whether state changed or not.
-    """
+    Adds the cell's coords to __live_cells"""
     if state:
       if (x, y) not in self.__live_cells:
         self.__live_cells.add((x, y))
-        return True
-      else:
-        return False
     else:
       if (x, y) in self.__live_cells:
         # We don't actually need this line, since we use a fresh buffer for each
@@ -70,9 +69,6 @@ class Board:
         # should be immutable after creation in a particular state, in order
         # to avoid this issue entirely, but I'm time limited.
         self.__live_cells.remove((x, y))
-        return True
-      else:
-        return False
 
   
   def tick(self):
@@ -91,14 +87,16 @@ class Board:
     # So we can create the list of dead cells with live neighbours and their
     # count while processing the current live set
     for (x, y) in self.__live_cells:
-      next_state = self.tick_cell(x, y, dead_neighbours)
+      (next_state, state_changed) = self.tick_cell(x, y, dead_neighbours)
       if next_state:
         next.set_cell_state(x, y, next_state)
 
-      if next_state != self.get_cell_state(x, y):
+      if state_changed:
         is_mod = True
 
-    # find all dead cells with exactly 3 neighbours, and bring them to life
+    # We now have a map of all dead cells with at least one adjacent live cell, since
+    # we have checked the neighbours of all live cells. find all dead cells with
+    # exactly 3 neighbours, and bring them to life
     for (neighbour, count) in dead_neighbours.items():
       if count == 3:
         next.set_cell_state(neighbour[0], neighbour[1], True)
@@ -114,14 +112,15 @@ class Board:
     """Compute the next state of a single cell.
 
     Receives a map of neighbour_coords -> count of live neighbours, which 
-    is incremented for each neighbour, if this cell is alive."""
+    is incremented for each neighbour, if this cell is alive.
+    Returns a tuple of the next value and whether the value changed."""
 
     live_neighbours = 0
+    next_state = False
+    state_changed = False
 
-    # Could use a global lookup to prevent recomputing on every pass, but
-    # that is complicated by board wrap semantics.  Could also calculate
-    # inline with update, but it is still a constant time operation, just
-    # a slightly faster one
+    # Could calculate inline with update, but it is still a constant time
+    # operation, just a slightly faster one
     neighbours = self.compute_neighbours(x,y)
 
     if self.get_cell_state(x, y):
@@ -133,7 +132,9 @@ class Board:
           dead_neighbours[neighbour] += 1
 
       if live_neighbours == 2 or live_neighbours == 3:
-        return True
+        next_state = True
+      else:
+        state_changed = True
 
     else:
       # Ideally, this branch is never called.  Caller can perform tick on the
@@ -146,13 +147,16 @@ class Board:
           live_neighbours += 1
 
       if live_neighbours == 3:
-        return True
+        next_state = True
+        state_changed = True
 
-    return False    
+    return (next_state, state_changed)
 
 
   def compute_neighbours(self, x, y):
-    # compute a set of neighbor cell addresses. Handle board edge semantics
+    """compute a set of neighbor cell addresses. 
+
+    Handle board edge semantics here. This version wraps"""
 
     neighbours = set()
     for i in range(x - 1, x + 2):
@@ -171,20 +175,20 @@ class Board:
           continue
 
         neighbours.add((i,j))
-
     return neighbours
 
 
   def render(self):
-    """Render each cell via ASCII"""
+    """Render each cell as ASCII character"""
 
     # clears the console and resets cursor to upper left
     sys.stdout.write("\033[2J")
-    for x in range(0, self.width):
-      for y in range(0, self.height):
+
+    for y in range(0, self.height):
+      for x in range(0, self.width):
         if (x,y) not in self.__live_cells:
-          # render dead cells with inverse colors and print a space
-          # cells are 2 spaces to make board wider relative to height
+          # render dead cells with inverse colors and print a space.
+          # Cells are 2 spaces to make board wider relative to height
           sys.stdout.write("\033[7m  \033[0m")
         else:
           print('  ', end = "")

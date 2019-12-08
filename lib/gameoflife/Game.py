@@ -4,12 +4,7 @@ import time
 from .Board import Board
 
 class Game:
-  """Simulate the Game of Life via console animation
-
-  For testing, Boards and Cells really ought to be dependency injected.
-  That would allow mocks to be injected and each layer of the hierarchy to
-  be tested independently
-  """
+  """Simulate the Game of Life via console animation"""
 
   @preconditions(
     lambda width: isinstance(width, int),
@@ -25,11 +20,7 @@ class Game:
   def tick(self):
     """Update state of the board with the next generation.
 
-    Each tick replaces the previous board instance with a new one. It would
-    be marginally more efficient to switch between 2 boards in order to 
-    avoid reallocating, but I have to leave something to talk about in the
-    interview.
-    """
+    Each tick replaces the previous board instance with a new one."""
     if self.__board:
       self.__board = self.__board.tick()
 
@@ -41,6 +32,11 @@ class Game:
 
 
   def run(self, generations, framerate):
+    """Run the game through specified generations at specified framerate
+    
+    Simulation stops if the population stabilizes. Framerate doesn't take
+    computation time of each tick or render time into account. Console 
+    doesn't refresh very quickly, anyway."""
     for i in range(0, generations):
       time.sleep(1/framerate)
       self.tick()

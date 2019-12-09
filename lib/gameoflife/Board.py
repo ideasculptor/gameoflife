@@ -5,17 +5,13 @@ from collections import defaultdict
 class Board:
   """Represents the current state of the GoL universe."""
 
-   # preconditions package profiles as SUPER-slow, and has no built-in
-   # mechanism for easy disable. I left them here so you know I didn't
-   # neglect safety checks entirely.
-#  @preconditions(
-#    lambda width: isinstance(width, int) and width > 0,
-#    lambda height: isinstance(height, int) and height > 0,
-#  )
   def __init__(self, width, height, initial_state = None):
     """Initialize the board. 
 
     initial_state should be a 2 dimensional array of bool."""
+
+    if width < 0 or height < 0:
+      raise ValueError
 
     self.__width = width
     self.__height = height
@@ -25,7 +21,8 @@ class Board:
     # during a tick so we don't need the full board in memory
     self.__live_cells = set()
 
-    # populate the board with any initial state provided
+    # populate the board with any initial state provided. This will blow
+    # up if initial_state dimensions aren't at least as large as the board
     if initial_state != None:
       for x in range(self.width):
         for y in range(self.height):
@@ -43,20 +40,11 @@ class Board:
     return self.__height
 
 
-#  @preconditions(
-#    lambda self, x: x >= 0 and x < self.width,
-#    lambda self, y: y >= 0 and y < self.height,
-#  )
   def get_cell_state(self, x, y):
     if (x, y) in self.__live_cells:
       return True
 
 
-#  @preconditions(
-#    lambda self, x: x >= 0 and x < self.width,
-#    lambda self, y: y >= 0 and y < self.height,
-#    lambda state: isinstance(state, bool),
-#  )
   def set_cell_state(self, x, y, state):
     """Update the state of a cell.
 
@@ -180,16 +168,16 @@ class Board:
   def render(self):
     """Render each cell as ASCII character"""
 
-    # clears the console and resets cursor to upper left
-    sys.stdout.write("\033[2J")
+    # resets cursor to upper left
+    sys.stdout.write("\033[1;1H")
 
     for y in range(0, self.height):
       for x in range(0, self.width):
-        if (x, y) not in self.__live_cells:
+        if (x, y) in self.__live_cells:
+          sys.stdout.write("  ")
+        else:
           # render dead cells with inverse colors and print a space.
           sys.stdout.write("\033[7m  \033[0m")
-        else:
-          sys.stdout.write("  ")
       sys.stdout.write("\n")
     sys.stdout.flush()
 
